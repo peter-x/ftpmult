@@ -18,7 +18,10 @@ function FtpServer(options) {
         if (self.logLevel < level)
             return;
 
-        console.log(message);
+        var now = new Date();
+        var dateStr = now.getFullYear() + "-" + (1 + now.getMonth()) + "-" + now.getDate() + " " +
+                      now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds();
+        console.log(dateStr + " " + message);
 
         if (isError)
             console.trace("Trace follows");

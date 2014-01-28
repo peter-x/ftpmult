@@ -210,8 +210,8 @@ function FtpServer(options) {
                 var m = command.arg.match(/.*\(\|\|\|(\d{1,5})\|\).*/);
                 if (m) {
                     forwardPassiveConnection(conn.destination.hostname, port, function(localHost, localPort) {
-                        conn.log(0, "229 Entering Passive Mode (|||" + localPost + "|)");
-                        clientSocket.write("229 Entering Passive Mode (|||" + localPost + "|)\r\n");
+                        conn.log(0, "229 Entering Passive Mode (|||" + localPort + "|)");
+                        clientSocket.write("229 Entering Passive Mode (|||" + localPort + "|)\r\n");
                     });
                     return;
                 } else {

@@ -68,6 +68,15 @@ function FtpServer(options) {
             }
         }
 
+        function parseServerResponse(data) {
+            var m = (data + '').match(/\s*(\d{1,3})([\s-]+(.*\S))?\s*/);
+            if (!m) {
+                return {cmd: '', arg: ''};
+            } else {
+                return {cmd: m[1], arg: m[3]};
+            }
+        }
+
         function forwardPassiveConnection(host, port, callback) {
             conn.log(0, "Establishing forward for passive connection (" + host + ":" + port + ")");
 
@@ -168,7 +177,7 @@ function FtpServer(options) {
         function handleServerResponse(data) {
             conn.log(2, "Server response: " + (data + '').trim().toString('utf-8'));
 
-            var command = parseFTPCommand(data);
+            var command = parseServerResponse(data);
 
             if (!conn.serverGreetingRecieved) {
                if (command.cmd === "220") {
@@ -200,9 +209,10 @@ function FtpServer(options) {
                 conn.log(3, "Trying to intercept extended passive mode.");
                 var m = command.arg.match(/.*\(\|\|\|(\d{1,5})\|\).*/);
                 if (m) {
+                    var port = parseInt(m[1]);
                     forwardPassiveConnection(conn.destination.hostname, port, function(localHost, localPort) {
-                        conn.log(0, "229 Entering Passive Mode (|||" + localPost + "|)");
-                        clientSocket.write("229 Entering Passive Mode (|||" + localPost + "|)\r\n");
+                        conn.log(0, "229 Entering Passive Mode (|||" + localPort + "|)");
+                        clientSocket.write("229 Entering Passive Mode (|||" + localPort + "|)\r\n");
                     });
                     return;
                 } else {

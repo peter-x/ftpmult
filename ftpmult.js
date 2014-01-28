@@ -68,6 +68,15 @@ function FtpServer(options) {
             }
         }
 
+        function parseServerResponse(data) {
+            var m = (data + '').match(/\s*(\d{1,3})([\s-]+(.*\S))?\s*/);
+            if (!m) {
+                return {cmd: '', arg: ''};
+            } else {
+                return {cmd: m[1], arg: m[3]};
+            }
+        }
+
         function forwardPassiveConnection(host, port, callback) {
             conn.log(0, "Establishing forward for passive connection (" + host + ":" + port + ")");
 
@@ -168,7 +177,7 @@ function FtpServer(options) {
         function handleServerResponse(data) {
             conn.log(2, "Server response: " + (data + '').trim().toString('utf-8'));
 
-            var command = parseFTPCommand(data);
+            var command = parseServerResponse(data);
 
             if (!conn.serverGreetingRecieved) {
                if (command.cmd === "220") {

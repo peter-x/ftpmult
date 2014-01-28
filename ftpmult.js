@@ -129,16 +129,92 @@ function FtpServer(options) {
             }
         }
         
+        function forwardActiveConnection(host, port, callback) {
+            conn.log(0, "Establishing forward for active connection (" + host + ":" + port + ")");
+        
+            var listenPort = null;
+            var serverConnected = false;
+            var clientConnected = false;
+        
+            var actvListener = net.createServer(function(lsocket) {
+                if (serverConnected) {
+                    lsocket.end();
+                } else {
+                    conn.log(4, "Server connected to reverse data forwarder.");
+                    serverConnected = true;
+                    actvListener.close();
+        
+                    lsocket.on('error', function(err) {
+                        conn.log(0, "Active reverse forwarding error: " + err, conn);
+                        lsocket.destroy();
+                    });
+        
+                    lsocket.pipe(clientConn);
+                    clientConn.pipe(lsocket);
+                }
+            });
+            actvListener.listen(0, function() {
+                conn.log(4, "Listening for server.");
+                listenPort = actvListener.address().port;
+                sendPortToServer();
+            });
+            actvListener.on('error', function(err) {
+                conn.log(0, "Passive listener error: " + err, conn);
+                actvListener.destroy();
+            });
+            var clientConn = net.createConnection(port, host, function() {
+                conn.log(4, "Connected to client.");
+                clientConnected = true;
+            });
+            clientConn.on('error', function(err) {
+                conn.log(0, "Passive forwarding error: " + err, conn);
+                clientConn.destroy();
+            });
+        
+        
+            function sendPortToServer() {
+                if (listenPort === null)
+                    return;
+                conn.log(4, "Reverse Forwarder established, notifying client.");
+                callback(self.myHost, listenPort);
+            }
+        }
+        
         function handleClientData(data) {
             // Don't want to include passwords in logs.
             conn.log(2, "Client command:  " + (data + '').trim().toString('utf-8').replace(/^PASS\s+.*/, 'PASS ***'));
 
+            var command = parseFTPCommand(data);
+            
+            // we alredy have a connection
             if (conn.serverSocket !== null) {
+                
+                // intercept ACTIVE 
+                if (command.cmd === "PORT") {
+                    
+                    conn.log(3, "Trying to intercept active mode: " + command.arg);
+                    var m = command.arg.match(/(\d{1,3}),(\d{1,3}),(\d{1,3}),(\d{1,3}),(\d{1,3}),(\d{1,3})/);
+                    if (m) {
+                        var hostname = m[1] + '.' + m[2] + '.' + m[3] + '.' + m[4];
+                        var port = parseInt(m[5]) * 256 + parseInt(m[6]);
+                        
+                        forwardActiveConnection(hostname, port, function(localHost, localPort) {
+                            var i1 = parseInt(localPort / 256);
+                            var i2 = parseInt(localPort % 256);
+                            conn.log(0, "PORT " + localHost.split(".").join(",") + "," + i1 + "," + i2);
+                            conn.serverSocket.write("PORT " + localHost.split(".").join(",") + "," + i1 + "," + i2 + "\r\n");
+                        });
+                        return;
+                    } else {
+                        conn.log(1, "Unable to parse PORT address.");
+                    }
+                }
+
+                // everything else
                 conn.serverSocket.write(data);
                 return;
             }
 
-            var command = parseFTPCommand(data);
 
             if (command.cmd !== "USER") {
                 clientSocket.write("202 Not supported\r\n");

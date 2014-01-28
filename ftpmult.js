@@ -209,6 +209,7 @@ function FtpServer(options) {
                 conn.log(3, "Trying to intercept extended passive mode.");
                 var m = command.arg.match(/.*\(\|\|\|(\d{1,5})\|\).*/);
                 if (m) {
+					var port = parseInt(m[1]);
                     forwardPassiveConnection(conn.destination.hostname, port, function(localHost, localPort) {
                         conn.log(0, "229 Entering Passive Mode (|||" + localPort + "|)");
                         clientSocket.write("229 Entering Passive Mode (|||" + localPort + "|)\r\n");

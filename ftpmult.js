@@ -9,7 +9,7 @@ function FtpServer(options) {
         return new FtpServer(options);
     }
 
-    this.myHost = options.host || '127.0.0.1';
+    this.myHost = options.host || '127.0.0.1'; // I had to change this to my FTP Proxy server IP of 192.168.0.100
     this.server = net.createServer();
     this.getHostFromUsername = options.getHostFromUsername || function(username) { return null; };
     this.logLevel = options.logLevel || 0;

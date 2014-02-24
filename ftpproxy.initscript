@@ -1,0 +1,69 @@
+#!/bin/sh
+
+# chkconfig: 345 70 30
+# description: ftpproxy
+# processname: ftpproxy
+
+NODE_EXECUTABLE_PATH=/usr/local/bin/node
+NODE_MODULES_PATH=/usr/local/bin/lib/node_modules/npm/node_modules
+
+check () {
+	if pidof -x "node" >/dev/null; then
+		return 0
+	else 
+		return 1
+	fi
+}
+
+chk_status () {
+	if check; then
+		echo "FTP Proxy is running"
+		echo
+	else 
+		echo "FTP Proxy is stopped"
+		echo
+	fi
+}
+
+start () {
+	if check; then
+		echo "FTP Proxy is already running"
+		echo
+	else
+	        echo "Starting FTP Proxy"
+		$NODE_EXECUTABLE_PATH $NODE_MODULES_PATH/ftpmult/ftp_proxy.js &
+		chk_status
+		touch /var/lock/subsys/ftpproxy
+	fi
+}
+
+stop () {
+	if check; then
+		echo "Stopping FTP Proxy"
+		pkill -9 node
+		rm -rf /var/lock/subsys/ftpproxy
+		chk_status
+	else
+        	echo "FTP Proxy is not running"
+		echo
+	fi
+}
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  restart)
+        stop
+        start
+        ;;
+  status)
+	chk_status
+	;;
+  *)
+        echo $"Usage: $0 {start|stop|restart|status}"
+esac
+
